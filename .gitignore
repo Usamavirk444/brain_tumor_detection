@@ -10,3 +10,5 @@ results/
 dist/
 build/
 *.pth
+data/processed/
+data/archive(1)/
