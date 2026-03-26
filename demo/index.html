@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Brain Tumor Classification — CNN Demo</title>
+  <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.16.3/dist/ort.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: #0d1117;
+      color: #e6edf3;
+      min-height: 100vh;
+    }
+
+    /* ── HEADER ── */
+    header {
+      background: linear-gradient(135deg, #0f2942 0%, #1a3a5c 100%);
+      border-bottom: 2px solid #1e6091;
+      padding: 20px 40px;
+      display: flex;
+      align-items: center;
+      gap: 18px;
+    }
+    .header-icon {
+      width: 48px; height: 48px;
+      background: #1e6091;
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 26px;
+    }
+    header h1 { font-size: 22px; font-weight: 700; color: #58a6ff; }
+    header p  { font-size: 13px; color: #8b949e; margin-top: 3px; }
+    .badge {
+      margin-left: auto;
+      background: #1e6091;
+      color: #79c0ff;
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+
+    /* ── MAIN ── */
+    main { max-width: 1100px; margin: 0 auto; padding: 32px 24px; }
+
+    /* ── STEP 1: LOAD MODEL ── */
+    #step-load {
+      background: #161b22;
+      border: 2px dashed #30363d;
+      border-radius: 16px;
+      padding: 40px;
+      text-align: center;
+      margin-bottom: 28px;
+      transition: border-color 0.2s;
+    }
+    #step-load.loaded { border-color: #238636; border-style: solid; }
+    #step-load h2 { font-size: 17px; color: #c9d1d9; margin-bottom: 8px; }
+    #step-load p  { font-size: 13px; color: #8b949e; margin-bottom: 20px; }
+    #model-status {
+      font-size: 14px; font-weight: 600;
+      color: #f0883e;
+      margin-top: 14px;
+      min-height: 22px;
+    }
+    #model-status.ready { color: #3fb950; }
+
+    /* ── BUTTONS ── */
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 10px 22px;
+      border-radius: 8px;
+      border: none;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.1s;
+    }
+    .btn:hover { opacity: 0.85; transform: translateY(-1px); }
+    .btn:active { transform: translateY(0); }
+    .btn-primary { background: #1e6091; color: #fff; }
+    .btn-green   { background: #238636; color: #fff; }
+    .btn-clear   { background: #30363d; color: #c9d1d9; font-size: 13px; padding: 8px 16px; }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+    /* ── STEP 2: UPLOAD ── */
+    #step-upload { margin-bottom: 28px; }
+    #drop-zone {
+      background: #161b22;
+      border: 2px dashed #30363d;
+      border-radius: 16px;
+      padding: 48px 24px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+    }
+    #drop-zone.dragover { border-color: #58a6ff; background: #1c2a3a; }
+    #drop-zone.disabled { opacity: 0.4; pointer-events: none; }
+    #drop-zone .dz-icon  { font-size: 44px; margin-bottom: 14px; }
+    #drop-zone h3 { font-size: 16px; color: #c9d1d9; }
+    #drop-zone p  { font-size: 13px; color: #8b949e; margin-top: 6px; }
+    #drop-zone .hint {
+      margin-top: 12px;
+      font-size: 12px;
+      color: #58a6ff;
+      background: #1c2a3a;
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 12px;
+    }
+
+    /* ── STATS BAR ── */
+    #stats-bar {
+      display: none;
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 12px;
+      padding: 16px 24px;
+      margin-bottom: 24px;
+      display: flex;
+      gap: 32px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .stat { text-align: center; }
+    .stat-val { font-size: 28px; font-weight: 700; }
+    .stat-lbl { font-size: 12px; color: #8b949e; margin-top: 2px; }
+    .stat-val.green  { color: #3fb950; }
+    .stat-val.red    { color: #f85149; }
+    .stat-val.yellow { color: #d29922; }
+    .stat-val.blue   { color: #58a6ff; }
+    #stats-bar { display: none; }
+    #stats-bar.visible { display: flex; }
+
+    /* ── RESULTS GRID ── */
+    #results-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 18px;
+    }
+
+    .result-card {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 14px;
+      overflow: hidden;
+      transition: transform 0.2s, border-color 0.2s;
+    }
+    .result-card:hover { transform: translateY(-3px); }
+    .result-card.tumor    { border-color: #da3633; }
+    .result-card.no-tumor { border-color: #238636; }
+    .result-card.pending  { border-color: #30363d; }
+
+    .card-img-wrap {
+      position: relative;
+      height: 180px;
+      background: #0d1117;
+      display: flex; align-items: center; justify-content: center;
+      overflow: hidden;
+    }
+    .card-img-wrap img {
+      max-width: 100%; max-height: 100%;
+      object-fit: contain;
+    }
+    .card-badge {
+      position: absolute;
+      top: 8px; right: 8px;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+    .badge-tumor    { background: #da3633; color: #fff; }
+    .badge-no-tumor { background: #238636; color: #fff; }
+    .badge-loading  { background: #30363d; color: #8b949e; }
+
+    .card-body { padding: 14px; }
+    .card-filename {
+      font-size: 12px; color: #8b949e;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      margin-bottom: 10px;
+    }
+    .card-label {
+      font-size: 15px; font-weight: 700;
+      margin-bottom: 8px;
+    }
+    .label-tumor    { color: #f85149; }
+    .label-no-tumor { color: #3fb950; }
+    .label-pending  { color: #8b949e; }
+
+    /* confidence bar */
+    .conf-row { margin-bottom: 6px; }
+    .conf-label-row {
+      display: flex; justify-content: space-between;
+      font-size: 11px; color: #8b949e; margin-bottom: 3px;
+    }
+    .conf-bar-bg {
+      height: 6px; background: #21262d; border-radius: 3px; overflow: hidden;
+    }
+    .conf-bar-fill {
+      height: 100%; border-radius: 3px;
+      transition: width 0.6s ease;
+    }
+    .fill-green { background: #3fb950; }
+    .fill-red   { background: #f85149; }
+
+    /* spinner */
+    .spinner {
+      width: 32px; height: 32px;
+      border: 3px solid #30363d;
+      border-top-color: #58a6ff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── CONTROLS ROW ── */
+    #controls-row {
+      display: flex; gap: 12px; align-items: center;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      text-align: center;
+      padding: 24px;
+      font-size: 12px;
+      color: #484f58;
+      border-top: 1px solid #21262d;
+      margin-top: 40px;
+    }
+
+    /* ── HIDDEN FILE INPUT ── */
+    input[type="file"] { display: none; }
+  </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="header-icon">🧠</div>
+  <div>
+    <h1>Brain Tumor Classification</h1>
+    <p>Custom CNN · Trained from Scratch · Binary Classification: Tumor / No Tumor</p>
+  </div>
+  <div class="badge">89.47% Test Accuracy</div>
+</header>
+
+<main>
+
+  <!-- STEP 1: LOAD MODEL -->
+  <div id="step-load">
+    <h2>Step 1 — Load ONNX Model</h2>
+    <p>Select the <code>brain_tumor_model.onnx</code> file generated by <code>export_model.py</code></p>
+    <button class="btn btn-primary" onclick="document.getElementById('model-file-input').click()">
+      📂 Select brain_tumor_model.onnx
+    </button>
+    <input type="file" id="model-file-input" accept=".onnx" onchange="loadModel(this)" />
+    <div id="model-status">Waiting for model file…</div>
+  </div>
+
+  <!-- STEP 2: UPLOAD IMAGES -->
+  <div id="step-upload">
+    <div id="controls-row">
+      <button class="btn btn-green" id="btn-upload" disabled
+        onclick="document.getElementById('img-input').click()">
+        ➕ Add MRI Images
+      </button>
+      <input type="file" id="img-input" accept="image/*" multiple onchange="handleFiles(this.files)" />
+      <button class="btn btn-clear" id="btn-clear" onclick="clearAll()" style="display:none">
+        🗑 Clear All
+      </button>
+    </div>
+
+    <div id="drop-zone" class="disabled"
+      ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event)"
+      onclick="document.getElementById('img-input').click()">
+      <div class="dz-icon">🔬</div>
+      <h3>Drag &amp; Drop MRI Images Here</h3>
+      <p>or click to browse · supports JPG, PNG · multiple images allowed</p>
+      <span class="hint">Load the model above first</span>
+    </div>
+  </div>
+
+  <!-- STATS BAR -->
+  <div id="stats-bar">
+    <div class="stat"><div class="stat-val blue" id="stat-total">0</div><div class="stat-lbl">Total Images</div></div>
+    <div class="stat"><div class="stat-val red"  id="stat-tumor">0</div><div class="stat-lbl">Tumor Detected</div></div>
+    <div class="stat"><div class="stat-val green" id="stat-notumor">0</div><div class="stat-lbl">No Tumor</div></div>
+    <div class="stat"><div class="stat-val yellow" id="stat-avg">—</div><div class="stat-lbl">Avg Confidence</div></div>
+  </div>
+
+  <!-- RESULTS GRID -->
+  <div id="results-grid"></div>
+
+</main>
+
+<footer>
+  BrainTumorCNN · ResidualBlocks + Global Average Pooling · ~455,682 params ·
+  Preprocessing: Resize 224×224 · ImageNet Normalisation
+</footer>
+
+<!-- HIDDEN CANVAS for preprocessing -->
+<canvas id="preprocess-canvas" width="224" height="224" style="display:none"></canvas>
+
+<script>
+  // ── ONNX RUNTIME WASM — point to CDN so it works from file:// ──
+  ort.env.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.16.3/dist/';
+
+  // ── GLOBALS ──
+  let ortSession = null;
+  let results = [];   // { file, url, label, conf0, conf1 }
+
+  const MEAN = [0.485, 0.456, 0.406];
+  const STD  = [0.229, 0.224, 0.225];
+
+  // ── LOAD MODEL ──
+  async function loadModel(input) {
+    const file = input.files[0];
+    if (!file) return;
+
+    const statusEl = document.getElementById('model-status');
+    statusEl.className = '';
+    statusEl.textContent = '⏳ Loading model… please wait';
+
+    try {
+      const buffer = await file.arrayBuffer();
+      ortSession = await ort.InferenceSession.create(buffer, {
+        executionProviders: ['wasm']
+      });
+
+      statusEl.textContent = `✅ Model ready: ${file.name}`;
+      statusEl.className = 'ready';
+
+      // Enable UI
+      document.getElementById('step-load').classList.add('loaded');
+      document.getElementById('btn-upload').disabled = false;
+      document.getElementById('drop-zone').classList.remove('disabled');
+      document.querySelector('#drop-zone .hint').textContent = 'Drag images here or click to browse';
+    } catch (err) {
+      statusEl.textContent = `❌ Failed to load model: ${err?.message || String(err)}`;
+    }
+  }
+
+  // ── DRAG & DROP ──
+  function onDragOver(e) {
+    e.preventDefault();
+    document.getElementById('drop-zone').classList.add('dragover');
+  }
+  function onDragLeave(e) {
+    document.getElementById('drop-zone').classList.remove('dragover');
+  }
+  function onDrop(e) {
+    e.preventDefault();
+    document.getElementById('drop-zone').classList.remove('dragover');
+    handleFiles(e.dataTransfer.files);
+  }
+
+  // ── HANDLE FILES ──
+  function handleFiles(files) {
+    if (!ortSession) return;
+    document.getElementById('btn-clear').style.display = 'inline-flex';
+    document.getElementById('stats-bar').classList.add('visible');
+
+    for (const file of files) {
+      if (!file.type.startsWith('image/')) continue;
+      const url = URL.createObjectURL(file);
+      const id  = Date.now() + Math.random();
+      results.push({ id, file, url, label: null, conf0: 0, conf1: 0 });
+      renderCard({ id, file, url, label: null });
+      runInference(id, url);
+    }
+  }
+
+  // ── RENDER CARD ──
+  function renderCard(item) {
+    const grid = document.getElementById('results-grid');
+    const card = document.createElement('div');
+    card.className = 'result-card pending';
+    card.id = `card-${item.id}`;
+    card.innerHTML = `
+      <div class="card-img-wrap">
+        <img src="${item.url}" alt="${item.file.name}" />
+        <span class="card-badge badge-loading" id="badge-${item.id}">Analysing…</span>
+      </div>
+      <div class="card-body">
+        <div class="card-filename">${item.file.name}</div>
+        <div class="card-label label-pending" id="label-${item.id}">
+          <div class="spinner"></div>
+        </div>
+        <div id="bars-${item.id}"></div>
+      </div>
+    `;
+    grid.prepend(card);
+  }
+
+  // ── UPDATE CARD ──
+  function updateCard(id, label, conf0, conf1) {
+    const isTumor  = label === 1;
+    const mainConf = isTumor ? conf1 : conf0;
+
+    const card  = document.getElementById(`card-${id}`);
+    const badge = document.getElementById(`badge-${id}`);
+    const lbl   = document.getElementById(`label-${id}`);
+    const bars  = document.getElementById(`bars-${id}`);
+
+    card.classList.remove('pending');
+    card.classList.add(isTumor ? 'tumor' : 'no-tumor');
+
+    badge.className = `card-badge ${isTumor ? 'badge-tumor' : 'badge-no-tumor'}`;
+    badge.textContent = isTumor ? '⚠ TUMOR' : '✓ NO TUMOR';
+
+    lbl.className = `card-label ${isTumor ? 'label-tumor' : 'label-no-tumor'}`;
+    lbl.textContent = isTumor ? '⚠ Tumor Detected' : '✓ No Tumor';
+
+    bars.innerHTML = `
+      <div class="conf-row">
+        <div class="conf-label-row"><span>No Tumor</span><span>${(conf0*100).toFixed(1)}%</span></div>
+        <div class="conf-bar-bg"><div class="conf-bar-fill fill-green" style="width:${conf0*100}%"></div></div>
+      </div>
+      <div class="conf-row">
+        <div class="conf-label-row"><span>Tumor</span><span>${(conf1*100).toFixed(1)}%</span></div>
+        <div class="conf-bar-bg"><div class="conf-bar-fill fill-red" style="width:${conf1*100}%"></div></div>
+      </div>
+    `;
+
+    updateStats();
+  }
+
+  // ── UPDATE STATS ──
+  function updateStats() {
+    const done    = results.filter(r => r.label !== null);
+    const tumors  = done.filter(r => r.label === 1);
+    const noTumor = done.filter(r => r.label === 0);
+    const avgConf = done.length
+      ? done.reduce((s, r) => s + (r.label === 1 ? r.conf1 : r.conf0), 0) / done.length
+      : 0;
+
+    document.getElementById('stat-total').textContent   = results.length;
+    document.getElementById('stat-tumor').textContent   = tumors.length;
+    document.getElementById('stat-notumor').textContent = noTumor.length;
+    document.getElementById('stat-avg').textContent     = done.length ? `${(avgConf*100).toFixed(1)}%` : '—';
+  }
+
+  // ── PREPROCESS IMAGE ──
+  function preprocessImage(imgEl) {
+    const canvas = document.getElementById('preprocess-canvas');
+    const ctx    = canvas.getContext('2d');
+    ctx.drawImage(imgEl, 0, 0, 224, 224);
+
+    const pixels = ctx.getImageData(0, 0, 224, 224).data;
+    const tensor = new Float32Array(3 * 224 * 224);
+
+    for (let i = 0; i < 224 * 224; i++) {
+      tensor[i]               = (pixels[i*4]   / 255 - MEAN[0]) / STD[0]; // R
+      tensor[224*224 + i]     = (pixels[i*4+1] / 255 - MEAN[1]) / STD[1]; // G
+      tensor[2*224*224 + i]   = (pixels[i*4+2] / 255 - MEAN[2]) / STD[2]; // B
+    }
+    return tensor;
+  }
+
+  // ── SOFTMAX ──
+  function softmax(logits) {
+    const max = Math.max(...logits);
+    const exps = logits.map(x => Math.exp(x - max));
+    const sum  = exps.reduce((a, b) => a + b, 0);
+    return exps.map(x => x / sum);
+  }
+
+  // ── RUN INFERENCE ──
+  async function runInference(id, url) {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.src = url;
+    await new Promise(res => { img.onload = res; });
+
+    const floatData = preprocessImage(img);
+    const tensor = new ort.Tensor('float32', floatData, [1, 3, 224, 224]);
+
+    try {
+      const feeds  = { input: tensor };
+      const output = await ortSession.run(feeds);
+
+      // Get logits from output (first output key)
+      const key    = Object.keys(output)[0];
+      const logits = Array.from(output[key].data);
+      const probs  = softmax(logits);
+
+      const conf0 = probs[0];
+      const conf1 = probs[1];
+      const label = conf1 >= conf0 ? 1 : 0;
+
+      // Update results array
+      const item = results.find(r => r.id === id);
+      if (item) { item.label = label; item.conf0 = conf0; item.conf1 = conf1; }
+
+      updateCard(id, label, conf0, conf1);
+    } catch (err) {
+      console.error('Inference error:', err);
+      const lbl = document.getElementById(`label-${id}`);
+      if (lbl) lbl.textContent = '❌ Error';
+    }
+  }
+
+  // ── CLEAR ALL ──
+  function clearAll() {
+    results = [];
+    document.getElementById('results-grid').innerHTML = '';
+    document.getElementById('stats-bar').classList.remove('visible');
+    document.getElementById('btn-clear').style.display = 'none';
+    document.getElementById('img-input').value = '';
+  }
+</script>
+</body>
+</html>

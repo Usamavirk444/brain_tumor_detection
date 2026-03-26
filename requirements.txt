@@ -1,0 +1,29 @@
+# Brain Tumor Detection — Python Dependencies
+# Install with:  pip install -r requirements.txt
+#
+# Tested on macOS with Apple Silicon (M4 Pro), Python 3.10+
+
+# ---- Core Deep Learning ----
+torch>=2.0.0          # PyTorch — MPS support requires 2.0+
+torchvision>=0.15.0   # Image transforms and datasets
+
+# ---- Data & Computation ----
+numpy>=1.24.0         # Numerical arrays
+Pillow>=9.5.0         # Image loading (PIL)
+
+# ---- Visualisation ----
+matplotlib>=3.7.0     # Training curves and plots
+seaborn>=0.12.0       # Confusion matrix heatmap
+
+# ---- Machine Learning Utilities ----
+scikit-learn>=1.3.0   # Metrics: accuracy, F1, confusion matrix
+
+# ---- Training Progress ----
+tqdm>=4.65.0          # Progress bars during training
+
+# ---- Jupyter Notebook ----
+jupyter>=1.0.0        # Run brain_tumor_demo.ipynb
+ipykernel>=6.0.0      # Jupyter kernel
+
+# ---- Presentation (optional, for generating the PPT) ----
+python-pptx>=0.6.21   # Create/edit PowerPoint files

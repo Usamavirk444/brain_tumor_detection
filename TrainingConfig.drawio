@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxGraphModel dx="1422" dy="762" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1654" pageHeight="1169" math="0" shadow="0">
+  <root>
+    <mxCell id="0" />
+    <mxCell id="1" parent="0" />
+
+    <!-- ===== TITLE ===== -->
+    <mxCell id="title" value="Training Process &amp; Configuration — BrainTumorCNN" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=20;fontStyle=1;" vertex="1" parent="1">
+      <mxGeometry x="80" y="10" width="900" height="35" as="geometry" />
+    </mxCell>
+
+    <!-- ================================================================ -->
+    <!-- SECTION 1: DATA PIPELINE -->
+    <!-- ================================================================ -->
+    <mxCell id="sec_data" value="① Data Pipeline" style="rounded=1;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#0066CC;strokeWidth=2;dashed=1;fontStyle=1;fontSize=13;verticalAlign=top;" vertex="1" parent="1">
+      <mxGeometry x="60" y="55" width="260" height="340" as="geometry" />
+    </mxCell>
+
+    <mxCell id="raw" value="&lt;b&gt;Raw Dataset&lt;/b&gt;&lt;br&gt;253 images&lt;br&gt;yes: 155 | no: 98" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+      <mxGeometry x="100" y="85" width="180" height="50" as="geometry" />
+    </mxCell>
+
+    <mxCell id="a_raw_split" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;" edge="1" source="raw" target="split" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <mxCell id="split" value="&lt;b&gt;Train / Val / Test Split&lt;/b&gt;&lt;br&gt;70% / 15% / 15%&lt;br&gt;Seed = 42" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+      <mxGeometry x="100" y="165" width="180" height="50" as="geometry" />
+    </mxCell>
+
+    <mxCell id="a_split_aug" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;" edge="1" source="split" target="aug" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <mxCell id="aug" value="&lt;b&gt;Offline Augmentation&lt;/b&gt;&lt;br&gt;× 8 copies per train image&lt;br&gt;→ 2,288 train images" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+      <mxGeometry x="100" y="245" width="180" height="50" as="geometry" />
+    </mxCell>
+
+    <mxCell id="a_aug_loader" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;" edge="1" source="aug" target="loader" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <mxCell id="loader" value="&lt;b&gt;DataLoader&lt;/b&gt;&lt;br&gt;batch_size=16 | shuffle=True&lt;br&gt;num_workers=0 (MPS)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;" vertex="1" parent="1">
+      <mxGeometry x="100" y="325" width="180" height="50" as="geometry" />
+    </mxCell>
+
+    <!-- ================================================================ -->
+    <!-- SECTION 2: MODEL & OPTIMIZER -->
+    <!-- ================================================================ -->
+    <mxCell id="sec_model" value="② Model &amp; Optimizer" style="rounded=1;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#0066CC;strokeWidth=2;dashed=1;fontStyle=1;fontSize=13;verticalAlign=top;" vertex="1" parent="1">
+      <mxGeometry x="360" y="55" width="260" height="340" as="geometry" />
+    </mxCell>
+
+    <mxCell id="model_box" value="&lt;b&gt;BrainTumorCNN&lt;/b&gt;&lt;br&gt;ResidualBlocks + GAP&lt;br&gt;~455,682 params" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
+      <mxGeometry x="400" y="85" width="180" height="50" as="geometry" />
+    </mxCell>
+
+    <mxCell id="a_model_loss" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;" edge="1" source="model_box" target="loss_box" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <mxCell id="loss_box" value="&lt;b&gt;Loss Function&lt;/b&gt;&lt;br&gt;CrossEntropyLoss&lt;br&gt;weights: no=1.59 | yes=1.0" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;" vertex="1" parent="1">
+      <mxGeometry x="400" y="165" width="180" height="50" as="geometry" />
+    </mxCell>
+
+    <mxCell id="a_loss_opt" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;" edge="1" source="loss_box" target="opt_box" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <mxCell id="opt_box" value="&lt;b&gt;Optimizer: AdamW&lt;/b&gt;&lt;br&gt;lr = 5e-4&lt;br&gt;weight_decay = 5e-5" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+      <mxGeometry x="400" y="245" width="180" height="50" as="geometry" />
+    </mxCell>
+
+    <mxCell id="a_opt_sched" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;" edge="1" source="opt_box" target="sched_box" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <mxCell id="sched_box" value="&lt;b&gt;LR Scheduler&lt;/b&gt;&lt;br&gt;ReduceLROnPlateau&lt;br&gt;factor=0.6 | patience=4 | min=1e-6" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;" vertex="1" parent="1">
+      <mxGeometry x="400" y="325" width="180" height="50" as="geometry" />
+    </mxCell>
+
+    <!-- ================================================================ -->
+    <!-- SECTION 3: TRAINING LOOP -->
+    <!-- ================================================================ -->
+    <mxCell id="sec_loop" value="③ Training Loop (30 Epochs)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#0066CC;strokeWidth=2;dashed=1;fontStyle=1;fontSize=13;verticalAlign=top;" vertex="1" parent="1">
+      <mxGeometry x="660" y="55" width="280" height="480" as="geometry" />
+    </mxCell>
+
+    <mxCell id="loop_start" value="&lt;b&gt;Start Epoch&lt;/b&gt;" style="ellipse;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+      <mxGeometry x="730" y="85" width="140" height="40" as="geometry" />
+    </mxCell>
+
+    <mxCell id="a_ls_train" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;" edge="1" source="loop_start" target="train_phase" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <mxCell id="train_phase" value="&lt;b&gt;Train Phase&lt;/b&gt;&lt;br&gt;Forward → Loss → Backward&lt;br&gt;optimizer.step() + L2 reg" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+      <mxGeometry x="700" y="155" width="200" height="55" as="geometry" />
+    </mxCell>
+
+    <mxCell id="a_train_val" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;" edge="1" source="train_phase" target="val_phase" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <mxCell id="val_phase" value="&lt;b&gt;Validation Phase&lt;/b&gt;&lt;br&gt;No gradients (torch.no_grad)&lt;br&gt;Compute val F1 + val Loss" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+      <mxGeometry x="700" y="240" width="200" height="55" as="geometry" />
+    </mxCell>
+
+    <mxCell id="a_val_sched2" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;" edge="1" source="val_phase" target="sched_step" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <mxCell id="sched_step" value="&lt;b&gt;scheduler.step(val_F1)&lt;/b&gt;&lt;br&gt;Reduce LR if no improvement&lt;br&gt;for 4 consecutive epochs" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;" vertex="1" parent="1">
+      <mxGeometry x="700" y="325" width="200" height="55" as="geometry" />
+    </mxCell>
+
+    <mxCell id="a_sched_save" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;" edge="1" source="sched_step" target="save_box" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <mxCell id="save_box" value="&lt;b&gt;Save Best Model?&lt;/b&gt;&lt;br&gt;if val_F1 &gt; best_val_F1&lt;br&gt;→ save checkpoint (.pth)" style="rhombus;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+      <mxGeometry x="700" y="405" width="200" height="65" as="geometry" />
+    </mxCell>
+
+    <mxCell id="a_save_es" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;" edge="1" source="save_box" target="early_stop" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <mxCell id="early_stop" value="&lt;b&gt;Early Stopping&lt;/b&gt;&lt;br&gt;patience = 15 epochs&lt;br&gt;monitor: val F1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;" vertex="1" parent="1">
+      <mxGeometry x="700" y="500" width="200" height="50" as="geometry" />
+    </mxCell>
+
+    <!-- ================================================================ -->
+    <!-- SECTION 4: RESULTS -->
+    <!-- ================================================================ -->
+    <mxCell id="sec_results" value="④ Final Results (Test Set)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#009900;strokeWidth=2;dashed=1;fontStyle=1;fontSize=13;verticalAlign=top;" vertex="1" parent="1">
+      <mxGeometry x="60" y="430" width="560" height="230" as="geometry" />
+    </mxCell>
+
+    <mxCell id="res_acc" value="&lt;b&gt;Accuracy&lt;/b&gt;&lt;br&gt;89.47%" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+      <mxGeometry x="90" y="465" width="110" height="55" as="geometry" />
+    </mxCell>
+
+    <mxCell id="res_prec" value="&lt;b&gt;Precision&lt;/b&gt;&lt;br&gt;91.30%" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+      <mxGeometry x="220" y="465" width="110" height="55" as="geometry" />
+    </mxCell>
+
+    <mxCell id="res_rec" value="&lt;b&gt;Recall&lt;/b&gt;&lt;br&gt;91.30%" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+      <mxGeometry x="350" y="465" width="110" height="55" as="geometry" />
+    </mxCell>
+
+    <mxCell id="res_f1" value="&lt;b&gt;F1-Score&lt;/b&gt;&lt;br&gt;91.30%" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+      <mxGeometry x="480" y="465" width="110" height="55" as="geometry" />
+    </mxCell>
+
+    <mxCell id="conf_matrix" value="&lt;b&gt;Confusion Matrix&lt;/b&gt;&lt;br&gt;TN=14  FP=1&lt;br&gt;FN=3   TP=20" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
+      <mxGeometry x="90" y="545" width="180" height="80" as="geometry" />
+    </mxCell>
+
+    <mxCell id="device_box" value="&lt;b&gt;Device&lt;/b&gt;&lt;br&gt;Apple M4 Pro (MPS)&lt;br&gt;~6s per epoch" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;" vertex="1" parent="1">
+      <mxGeometry x="300" y="545" width="180" height="80" as="geometry" />
+    </mxCell>
+
+    <mxCell id="stopped_box" value="&lt;b&gt;Stopped At&lt;/b&gt;&lt;br&gt;Early stopping triggered&lt;br&gt;Best Val F1 saved" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;" vertex="1" parent="1">
+      <mxGeometry x="500" y="545" width="100" height="80" as="geometry" />
+    </mxCell>
+
+    <!-- ================================================================ -->
+    <!-- FLOW ARROWS BETWEEN SECTIONS -->
+    <!-- ================================================================ -->
+    <mxCell id="flow_1_2" value="" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#0066CC;" edge="1" source="loader" target="model_box" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <mxCell id="flow_2_3" value="" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#0066CC;" edge="1" source="sched_box" target="loop_start" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- ================================================================ -->
+    <!-- FOOTER NOTE -->
+    <!-- ================================================================ -->
+    <mxCell id="footer" value="Kaiming weight init | L2 regularization λ=5e-5 | No pretrained weights — trained from scratch on MRI data" style="text;html=1;strokeColor=#999999;fillColor=#f5f5f5;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=1;fontSize=11;fontStyle=2;" vertex="1" parent="1">
+      <mxGeometry x="60" y="680" width="880" height="28" as="geometry" />
+    </mxCell>
+
+  </root>
+</mxGraphModel>
