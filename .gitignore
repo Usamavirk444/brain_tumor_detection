@@ -12,3 +12,4 @@ build/
 *.pth
 data/processed/
 data/archive(1)/
+data/
