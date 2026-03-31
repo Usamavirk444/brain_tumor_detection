@@ -2,7 +2,6 @@ venv/
 __pycache__/
 *.pyc
 *.pth
-*.onnx
 data/
 results/
 .DS_Store
